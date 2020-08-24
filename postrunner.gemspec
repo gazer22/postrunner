@@ -31,6 +31,7 @@ operating systems as well.}
   spec.add_dependency 'fit4ruby', '~> 3.6.0'
   spec.add_dependency 'perobs', '~> 4.2.0'
   spec.add_dependency 'nokogiri', '~> 1.6'
+  spec.add_dependency 'pry-byebug', '~> 3.9.0'    #jkk
 
   spec.add_development_dependency 'bundler', '~> 1.6'
   spec.add_development_dependency 'rake', '~> 0.9.6'

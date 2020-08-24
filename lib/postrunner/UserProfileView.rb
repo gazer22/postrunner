@@ -53,11 +53,11 @@ module PostRunner
         t.cell("#{'%.2f' % height} #{unit}", { :width => '60%' })
         t.new_row
       end
-      if (user_data && user_data.weight) ||
-          (user_profile && user_profile.weight)
+      if (user_data && user_data.weight) || (user_profile && user_profile.weight)
         unit = { :metric => 'kg', :statute => 'lbs' }[@unit_system]
         weight = (user_profile && user_profile.get_as('weight', unit)) ||
                  (user_data && user_data.get_as('weight', unit))
+        binding.pry   #jkk
         t.row([ 'Weight:', "#{'%.1f' % weight} #{unit}" ])
       end
       t.row([ 'Gender:', user_data.gender ]) if user_data.gender

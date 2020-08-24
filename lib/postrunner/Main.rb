@@ -14,6 +14,7 @@ require 'optparse'
 require 'fit4ruby'
 require 'perobs'
 require 'fileutils'
+require 'pry-byebug'
 
 require 'postrunner/version'
 require 'postrunner/Log'
@@ -236,6 +237,9 @@ sources [ <ref> ]
            Show the data sources for the various measurements and how they
            changed during the course of the activity.
 
+stops [ <ref>, <duration> ]
+           Highlight stopped time over an activity
+           
 summary <ref>
            Display the summary information for the FIT file.
 
@@ -312,6 +316,7 @@ EOT
 
       case (cmd = args.shift)
       when 'check'
+        #binding.pry #jkk
         if args.empty?
           @db.check(true)
           @ffs.check
@@ -382,6 +387,8 @@ EOT
         end
       when 'sources'
         process_activities(args, :sources)
+      when 'stops'
+        process_activities(args, :stops)
       when 'summary'
         process_activities(args, :summary)
       when 'units'
@@ -421,7 +428,18 @@ EOT
         Log.abort("You must provide at least one activity reference.")
       end
 
-      activity_refs.each do |a_ref|
+      @duration = 30       # used to detect stops
+      act_count = 0
+      activity_refs.each do |arg|
+        if arg[0] == ':'
+            act_count += 1
+        else
+            @duration = arg.to_i
+        end
+      end
+
+     
+      activity_refs[0..act_count-1].each do |a_ref|
         if a_ref[0] == ':'
           activities = @ffs.find(a_ref[1..-1])
           if activities.empty?
@@ -518,6 +536,10 @@ EOT
         end
       when :show
         activity.show
+      when :stops
+        binding.pry    #jkk
+        # need to add stops(duration) method to activity
+        activity.stops(@duration)
       when :sources
         activity.sources
       when :summary

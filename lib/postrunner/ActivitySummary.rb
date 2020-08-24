@@ -17,6 +17,7 @@ require 'postrunner/ViewFrame'
 require 'postrunner/HRV_Analyzer'
 require 'postrunner/Percentiles'
 require 'postrunner/HRZoneDetector'
+require 'postrunner/PWRZoneDetector'
 
 module PostRunner
 
@@ -24,6 +25,11 @@ module PostRunner
 
     class HRZone < Struct.new(:index, :low, :high, :time_in_zone,
                               :percent_in_zone)
+    end
+
+    class PWRZone < Struct.new(:index, :low, :high, :time_in_zone,
+                               :percent_in_zone)
+        attr_accessor :low, :high, :time_in_zone, :percent_in_zone
     end
 
     include Fit4Ruby::Converters
@@ -42,6 +48,7 @@ module PostRunner
         (@activity.note ? note.to_s + "\n" : '') +
         laps.to_s
       s += hr_zones.to_s if has_hr_zones?
+      s += pwr_zones.to_s if has_pwr_zones?   #jkk
 
       s
     end
@@ -53,6 +60,10 @@ module PostRunner
       ViewFrame.new('note', 'Note', width, note,
                     true).to_html(doc) if @activity.note
       ViewFrame.new('laps', 'Laps', width, laps, true).to_html(doc)
+      if has_pwr_zones?
+        ViewFrame.new('pwr_zones', 'Power Zones', width, pwr_zones, true).
+          to_html(doc)
+      end
       if has_hr_zones?
         ViewFrame.new('hr_zones', 'Heart Rate Zones', width, hr_zones, true).
           to_html(doc)
@@ -101,6 +112,16 @@ module PostRunner
               local_value(session, 'total_descent', '%.0f %s',
                           { :metric => 'm', :statute => 'ft' }) ])
       t.row([ 'Calories:', "#{session.total_calories} kCal" ])
+
+      #jkk
+      t.row([ 'Avg. PWR:', session.avg_power ?
+              "#{session.avg_power} watts" : '-' ])
+      t.row([ 'Norm. PWR:', session.normalized_power ?
+              "#{session.normalized_power} watts" : '-' ])
+      t.row([ 'Max.  PWR:', session.max_power ?
+              "#{session.max_power} watts" : '-' ])
+      #/jkk
+
       t.row([ 'Avg. HR:', session.avg_heart_rate ?
               "#{session.avg_heart_rate} bpm" : '-' ])
       t.row([ 'Max. HR:', session.max_heart_rate ?
@@ -129,7 +150,7 @@ module PostRunner
       if @activity.sport == 'cycling'
         t.row([ 'Avg. Cadence:',
                 session.avg_cadence ?
-                "#{(2 * session.avg_cadence).round} rpm" : '-' ])
+                "#{(session.avg_cadence).round} rpm" : '-' ])  #jkk - removed 2 * session.avg_cadence - not sure why to double?
       end
 
       if @fit_activity.physiological_metrics &&
@@ -217,6 +238,41 @@ module PostRunner
       t
     end
 
+    def pwr_zones
+      session = @fit_activity.sessions[0]
+      t = FlexiTable.new
+      t.head
+      t.row([ 'Zone', 'Exertion', 'Min. Pwr [watts]', 'Max. Pwr [watts]',  
+              'Time in Zone', '% of Time in Zone' ])
+      t.set_column_attributes([
+        { :halign => :right },
+        { :halign => :left},
+        { :halign => :right },
+        { :halign => :right },
+        { :halign => :right },
+        { :halign => :right },
+      ])
+      t.body
+      # Calculate the total time in all the 9 relevant zones. We'll need this
+      # later as the basis for the percentage values.
+      total_secs = 0
+      zones = gather_pwr_zones
+
+      zones.each do |zone|
+        t.cell([ 0, 1, 2, 3, "SS", 4, 5, 6, 7][zone.index])
+        t.cell([ 'Rest', 'Active Recovery', 'Endurance', 'Tempo', 'Sweet Spot', 'Threshold',
+                 'VO2 Max', 'Anaerobic', 'Neuromuscular Power' ][zone.index])
+        t.cell(zone.low)
+        t.cell(zone.high)
+        t.cell(secsToHMS(zone.time_in_zone))
+        t.cell('%.0f%%' % zone.percent_in_zone)
+
+        t.new_row
+      end
+
+      t
+    end
+
     def hr_zones
       session = @fit_activity.sessions[0]
 
@@ -279,6 +335,17 @@ module PostRunner
           end
         end
       end
+    end
+
+    def has_pwr_zones?
+      #return true if FIT file has power data and a defined FTP
+
+      #binding.pry     #jkk
+      user_data = @fit_activity.get("user_data")
+      ftp = user_data[0].functional_threshold_power
+      session = @fit_activity.sessions[0]
+      
+      return ftp > 0 && session.avg_power > 0
     end
 
     def gather_hr_zones
@@ -350,6 +417,18 @@ module PostRunner
         yield(secs_in_zone, i)
       end
     end
+
+    def gather_pwr_zones
+      # return an array of the 9 power zones with index, low, high, time in zone, and % time in zone
+      user_data = @fit_activity.get("user_data")
+      ftp = user_data[0].functional_threshold_power
+
+      # build initial power zone table
+      zones = PWRZoneDetector::detect_zones(@fit_activity.records, ftp)
+      #binding.pry    #jkk
+      return zones
+    end
+
 
     def local_value(fdr, field, format, units)
       unit = units[@unit_system]

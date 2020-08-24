@@ -48,6 +48,14 @@ module PostRunner
           :colors => '#5AAA44',
           :show => @activity.sub_sport != 'treadmill'
         },
+        {                       # show power for non-runing sports
+          :id => 'power',
+          :label => 'Power',
+          :unit => 'watts',
+          :graph => :line_graph,
+          :colors => '#E88B3F',
+          :show => @sport != 'running'
+        },
         {
           :id => 'heart_rate',
           :label => 'Heart Rate',
@@ -272,6 +280,7 @@ EOT
     def line_graph(chart)
       s = "var #{chart[:id]}_data = [\n"
 
+      #binding.pry     #jkk
       data_set = []
       start_time = @activity.fit_activity.sessions[0].start_time.to_i
       min_value = nil
