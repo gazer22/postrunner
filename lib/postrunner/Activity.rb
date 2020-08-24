@@ -214,6 +214,7 @@ module PostRunner
       puts DataSources.new(self, @db.cfg[:unit_system]).to_s
     end
 
+
     def summary
       @fit_activity = load_fit_file unless @fit_activity
       puts ActivitySummary.new(self, @db.cfg[:unit_system],

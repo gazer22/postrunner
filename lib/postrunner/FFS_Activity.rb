@@ -194,6 +194,34 @@ module PostRunner
       puts DataSources.new(self, @store['config']['unit_system'].to_sym).to_s
     end
 
+    # display information on stops > duration (in seconds)
+        # if leg_speed = 0, then block is stopped
+        # look for consectutive stopped blocks
+        # for each consecutive stopped block
+        # start time = 1st time in block
+        # stopped time = sum of durations
+        #
+        # output:
+        #
+        # block    time      duration
+        # 1		 0:10:30   0:00:30
+        # 2	     1:45:22   0:10:00
+        # 3		 2:20:12   0:00:05
+    def stops(duration)
+       load_fit_file unless @fit_activity
+       binding.pry   #jkk
+       puts "testing stops"
+
+      id_count = 0
+      @fit_activity.records.each do |record|
+        binding.pry    #jkk
+        record[:id] = id_count
+        id_count += 1
+      end  #record do loop
+
+    end
+
+
     def summary
       load_fit_file
       puts ActivitySummary.new(self, @store['config']['unit_system'].to_sym,
