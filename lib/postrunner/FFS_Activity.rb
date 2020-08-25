@@ -213,8 +213,8 @@ module PostRunner
 	   
 	   splice_records.each do |record|
 		 activity_out = Fit4Ruby::Activity.new
-		 activity_out.new_user_profile(@fit_activity.user_profiles[0])
-		 activity_out.new_user_data(@fit_activity.user_data[0])
+		 #activity_out.new_user_profile(@fit_activity.user_profiles[0])
+		 #activity_out.new_user_data(@fit_activity.user_data[0])
 		 
 		 running_time = 0.0
 		 stopped_time = 0.0
@@ -270,8 +270,8 @@ module PostRunner
 	   stop_array = []
 	  
        @fit_activity.records.reverse.each_with_index do |record, ind|
-		if record.speed == 0
-			delta_t = last_timestamp - record.timestamp
+        delta_t = last_timestamp - record.timestamp		
+        if record.speed == 0 || delta_t > 3600  #jkk guess for now, but seems to work
 			stop_array << StopList.new(last_ind-ind, record.timestamp, delta_t, last_timestamp)
 		end
          #binding.pry    #jkk
