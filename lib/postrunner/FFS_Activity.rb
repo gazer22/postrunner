@@ -24,7 +24,7 @@ require 'postrunner/DirUtils'
 
 module PostRunner
 
-  class StopList < Struct.new(:index, :start_time, :duration, :end_time)
+  class StopList < Struct.new(:index, :start_time, :duration, :end_time, :speed)
   end
 
 
@@ -270,16 +270,32 @@ module PostRunner
 	   stop_array = []
 	  
        @fit_activity.records.reverse.each_with_index do |record, ind|
-        delta_t = last_timestamp - record.timestamp		
-        if record.speed == 0 || delta_t > 3600  #jkk guess for now, but seems to work
-			stop_array << StopList.new(last_ind-ind, record.timestamp, delta_t, last_timestamp)
-		end
+         delta_t = last_timestamp - record.timestamp		
+         if record.speed == 0 || record.speed.nil?   #jkk guess for now, but seems to work
+			stop_array << StopList.new(last_ind-ind, record.timestamp, delta_t, last_timestamp, record.speed)
+	     end
          #binding.pry    #jkk
 		 last_timestamp = record.timestamp
        end  #record do loop
 	   #binding.pry   #jkk
 	   
 	   stop_array.reverse!
+	   
+	   # need to combine sequential zero speed records 
+	   ind = 1
+	   until ind >= stop_array.length
+	     #binding.pry    #jkk
+	     if (stop_array[ind].index == stop_array[ind-1].index+1) || (stop_array[ind].start_time == stop_array[ind-1].end_time)
+			#binding.pry   #jkk
+			stop_array[ind-1].duration += stop_array[ind].duration
+			stop_array[ind-1].end_time = stop_array[ind].end_time
+			stop_array.slice!(ind)
+		 else
+			ind += 1
+		 end
+	   end
+	   
+	   binding.pry	#jkk
 	   
 	   stop_array.select! { |stop_info| stop_info.duration >= duration }
 
