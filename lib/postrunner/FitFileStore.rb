@@ -286,11 +286,11 @@ module PostRunner
     def monitorings(start_date, end_date)
       monitorings = []
       @store['devices'].each do |id, device|
-        binding.pry   #jkk
+        #binding.pry   #jkk
         monitorings += device.monitorings(start_date.gmtime, end_date.gmtime)
       end
       
-      binding.pry    #jkk
+      #binding.pry    #jkk
       
       monitorings.reverse.map do |m|
         read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
@@ -459,7 +459,7 @@ module PostRunner
       monitoring_files = monitorings(start_day - 8 * 24 * 60 * 60,
                                      start_day + 8 * 24 * 60 * 60)
       
-      binding.pry     #jkk
+      #binding.pry     #jkk
 
       puts MonitoringStatistics.new(monitoring_files).weekly(start_day)
     end

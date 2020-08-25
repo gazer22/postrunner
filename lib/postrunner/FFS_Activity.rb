@@ -16,6 +16,7 @@ require 'perobs'
 require 'postrunner/ActivitySummary'
 require 'postrunner/DataSources'
 require 'postrunner/EventList'
+require 'postrunner/FlexiTable'
 require 'postrunner/ActivityView'
 require 'postrunner/Schema'
 require 'postrunner/QueryResult'
@@ -23,12 +24,17 @@ require 'postrunner/DirUtils'
 
 module PostRunner
 
+  class StopList < Struct.new(:index, :start_time, :duration, :end_time)
+  end
+
+
   # The FFS_Activity objects can store a reference to the FIT file data and
   # caches some frequently used values. In some cases the cached values can be
   # used to overwrite the data from the FIT file.
   class FFS_Activity < PEROBS::Object
 
     include DirUtils
+	include Fit4Ruby::Converters
 
     @@Schemata = {
       'long_date' => Schema.new('long_date', 'Date',
@@ -188,6 +194,51 @@ module PostRunner
 
       @store['file_store'].show_in_browser(html_file)
     end
+	
+	# split files based at times where stopped duration >= duration
+	def split(duration)
+	   stop_array = stops(duration)
+	   splice_records = []
+	   
+	   start_slice = 0
+	   stop_array.each do |stop|
+		 splice_records << @fit_activity.records.slice(start_slice, stop.index-start_slice+1)
+		 start_slice = stop.index+1
+		 
+		 #binding.pry  #jkk
+	   end
+	   splice_records << @fit_activity.records.slice(start_slice, @fit_activity.records.length-start_slice)
+	   
+	   binding.pry		#jkk
+	   
+	   splice_records.each do |record|
+		 activity_out = Fit4Ruby::Activity.new
+		 activity_out.new_user_profile(@fit_activity.user_profiles[0])
+		 activity_out.new_user_data(@fit_activity.user_data[0])
+		 
+		 running_time = 0.0
+		 stopped_time = 0.0
+		 last_speed = record[0].speed
+		 last_time = record[0].timestamp
+		 record.each do |element|
+			activity_out.new_record(element)
+			delta_t = element.timestamp - last_time
+			last_speed > 0 ? running_time += delta_t : 
+				stopped_time += delta_t
+			last_speed = element.speed
+			last_time = element.timestamp
+		 end
+		 activity_out.total_timer_time = running_time
+		 
+		 binding.pry  #jkk
+		 
+		 #write output file
+		 
+	   end
+		
+	   return splice_records
+	   
+	end
 
     def sources
       load_fit_file
@@ -209,16 +260,58 @@ module PostRunner
         # 3		 2:20:12   0:00:05
     def stops(duration)
        load_fit_file unless @fit_activity
-       binding.pry   #jkk
-       puts "testing stops"
+       #puts "testing stops"
 
-      id_count = 0
-      @fit_activity.records.each do |record|
-        binding.pry    #jkk
-        record[:id] = id_count
-        id_count += 1
-      end  #record do loop
+       last_ind = @fit_activity.records.length-1
+	   
+	   #binding.pry  #jkk
+	   
+	   last_timestamp = @fit_activity.records[last_ind].timestamp
+	   stop_array = []
+	  
+       @fit_activity.records.reverse.each_with_index do |record, ind|
+		if record.speed == 0
+			delta_t = last_timestamp - record.timestamp
+			stop_array << StopList.new(last_ind-ind, record.timestamp, delta_t, last_timestamp)
+		end
+         #binding.pry    #jkk
+		 last_timestamp = record.timestamp
+       end  #record do loop
+	   #binding.pry   #jkk
+	   
+	   stop_array.reverse!
+	   
+	   stop_array.select! { |stop_info| stop_info.duration >= duration }
 
+	   #binding.pry #jkk
+	   
+	   puts stops_to_s(stop_array)
+	   
+	   return stop_array
+	
+    end
+
+	def stops_to_s(stop_array)
+	  t = FlexiTable.new
+      t.head
+      t.row([ 'Index', 'Start time', 'Duration', 'End time' ])
+      t.set_column_attributes([
+        { :halign => :right },
+        { :halign => :right },
+        { :halign => :right },
+        { :halign => :right },
+      ])
+      t.body
+
+      stop_array.each do |stop_info|
+        t.cell(stop_info.index)
+        t.cell(stop_info.start_time.localtime.strftime("%_m/%e %H:%M:%S"))
+        t.cell(secsToHMS(stop_info.duration))
+        t.cell(stop_info.end_time.localtime.strftime("%_m/%e %H:%M:%S"))
+        t.new_row
+      end
+
+      t
     end
 
 

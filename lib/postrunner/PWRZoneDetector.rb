@@ -76,8 +76,8 @@ module PostRunner
                 end
             end
           else 
-            puts "delta_t = #{delta_t}"
-            binding.pry         #jkk
+            #puts "delta_t = #{delta_t}"
+            #binding.pry         #jkk
           end
         end
         last_timestamp = record.timestamp

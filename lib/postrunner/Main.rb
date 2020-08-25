@@ -232,13 +232,17 @@ show [ <ref> | <YYYY-MM-DD> ]
            Show the referenced FIT activity or monitoring data for the given
            date in a web browser. If no argument is provided show the list of
            activities in the database.
+		   
+split [ <ref>, <duration> ]
+		   Split activity based on stopped periods >= duration and write to
+		   separate FIT files
 
 sources [ <ref> ]
            Show the data sources for the various measurements and how they
            changed during the course of the activity.
 
 stops [ <ref>, <duration> ]
-           Highlight stopped time over an activity
+           Highlight stopped time >= duration over an activity
            
 summary <ref>
            Display the summary information for the FIT file.
@@ -387,6 +391,8 @@ EOT
         end
       when 'sources'
         process_activities(args, :sources)
+	  when 'split'
+		process_activities(args, :split)
       when 'stops'
         process_activities(args, :stops)
       when 'summary'
@@ -536,8 +542,10 @@ EOT
         end
       when :show
         activity.show
+	  when :split
+		activity.split(@duration)
       when :stops
-        binding.pry    #jkk
+        # binding.pry    #jkk
         # need to add stops(duration) method to activity
         activity.stops(@duration)
       when :sources

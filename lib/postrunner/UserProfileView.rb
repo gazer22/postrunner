@@ -57,7 +57,6 @@ module PostRunner
         unit = { :metric => 'kg', :statute => 'lbs' }[@unit_system]
         weight = (user_profile && user_profile.get_as('weight', unit)) ||
                  (user_data && user_data.get_as('weight', unit))
-        binding.pry   #jkk
         t.row([ 'Weight:', "#{'%.1f' % weight} #{unit}" ])
       end
       t.row([ 'Gender:', user_data.gender ]) if user_data.gender
