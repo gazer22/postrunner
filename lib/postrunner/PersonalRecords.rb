@@ -25,9 +25,11 @@ module PostRunner
       'cycling' => {
         50_000.0 => '50 km',
         150_000.0 => '150 km',
+		160_934.4 => '100 mi',
         200_000.0 => '200 km',
         250_000.0 => '200 km',
         300_000.0 => '300 km',
+		321_868.8 => '200 mi',
         400_000.0 => '400 km',
         600_000.0 => '600 km',
         1200_000.0 => '1200 km',
@@ -104,11 +106,13 @@ module PostRunner
       end
 
       def to_table_row(t)
-        t.row((@duration.nil? ?
-               [ 'Longest Distance', '%.3f km' % (@distance / 1000.0), '-' ] :
+        avg_speed = @distance / @duration if !@duration.nil?
+		t.row((@duration.nil? ?
+               [ 'Longest Distance', '%0.f km' % (@distance / 1000.0), '-', '-' ] :
                [ PersonalRecords::SpeedRecordDistances[@sport][@distance],
                  secsToHMS(@duration),
-                 speedToPace(@distance / @duration) ]) +
+                 '%0.1f kph' % [avg_speed * conversion_factor('m/s', 'km/h')] , 
+				 '%0.1f mph' % [avg_speed * conversion_factor('m/s', 'mph')] ]) +   #jkk - changed from speedToPace to just speed
               [ @store['file_store'].ref_by_activity(@activity),
                 ActivityLink.new(@activity, false),
                 @start_time.strftime("%Y-%m-%d") ])
@@ -216,13 +220,14 @@ module PostRunner
       def generate_table
         t = FlexiTable.new
         t.head
-        t.row([ 'Record', 'Time/Dist.', 'Avg. Pace', 'Ref.', 'Activity',
+        t.row([ 'Record', 'Time/Dist.', 'Avg. Speed', 'Avg. Speed', 'Ref.', 'Activity',
                 'Date' ],
               { :halign => :center })
         t.set_column_attributes([
           {},
           { :halign => :right },
           { :halign => :right },
+		  { :halign => :right },
           { :halign => :right },
           { :halign => :left },
           { :halign => :left }
