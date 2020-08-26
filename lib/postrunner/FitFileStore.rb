@@ -130,12 +130,13 @@ module PostRunner
     # @return [FFS_Activity or FFS_Monitoring] Corresponding entry in the
     #         FitFileStore or nil if file could not be added.
     def add_fit_file(fit_file_name, fit_entity = nil, overwrite = false)
+	  #binding.pry     #jkk
       # If the file hasn't been read yet, read it in as a
       # Fit4Ruby::Activity or Fit4Ruby::Monitoring entity.
       unless fit_entity
         return nil unless (fit_entity = read_fit_file(fit_file_name))
       end
-
+	  
       unless [ Fit4Ruby::Activity,
                Fit4Ruby::Monitoring_B,
                Fit4Ruby::Metrics ].include?(fit_entity.class)
