@@ -160,8 +160,7 @@ module PostRunner
              @distance_record.distance < result.distance
             self.distance_record = @store.new(Record, result)
             raise RuntimeError if @distance_record.is_a?(String)
-            Log.info "New #{@year ? @year.to_s : 'all-time'} " +
-                     "#{result.sport} distance record: #{result.distance} m"
+            Log.info "New #{@year ? @year.to_s : 'all-time'} #{result.sport} distance record: %0.f km" % [result.distance / 1000]
             return true
           end
         end
@@ -353,6 +352,8 @@ module PostRunner
       last_timestamp = nil
       last_distance = nil
 
+	  #binding.pry    #jkk
+	  
       activity.fit_activity.records.each do |record|
         if record.distance.nil?
           # All records must have a valid distance mark or the activity does
@@ -364,6 +365,8 @@ module PostRunner
           Log.warn "Found a record without a valid timestamp"
           return
         end
+
+		#binding.pry	if record.equal?(activity.fit_activity.records.last) #jkk
 
         unless sport
           # If the Activity has sport set to 'multisport' or 'all' we pick up
@@ -403,10 +406,14 @@ module PostRunner
 
         # We've reached the end of a segment if the sport type changes, we
         # detect a pause of more than 30 seconds or when we've reached the
-        # last record.
+        # last record. - remove the 'if paused for more than 30 seconds - jkk
+#        if (record.activity_type && sport && record.activity_type != sport) ||
+#           (last_timestamp && (record.timestamp - last_timestamp) > 30) ||
+#           record.equal?(activity.fit_activity.records.last)
         if (record.activity_type && sport && record.activity_type != sport) ||
-           (last_timestamp && (record.timestamp - last_timestamp) > 30) ||
            record.equal?(activity.fit_activity.records.last)
+
+		  #binding.pry			#jkk    #should only stop here at end of records?
 
           # Check for a total distance record
           if segment_distance > distance_record
