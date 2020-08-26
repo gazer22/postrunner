@@ -234,8 +234,8 @@ show [ <ref> | <YYYY-MM-DD> ]
            activities in the database.
 		   
 split [ <ref>, <duration> ]
-		   Split activity based on stopped periods >= duration and write to
-		   separate FIT files
+		   Split activity based on stopped periods >= duration (in hours)
+		   and write to separate FIT files
 
 sources [ <ref> ]
            Show the data sources for the various measurements and how they
@@ -440,7 +440,7 @@ EOT
         if arg[0] == ':'
             act_count += 1
         else
-            @duration = arg.to_i
+            @duration = arg.to_f
         end
       end
 

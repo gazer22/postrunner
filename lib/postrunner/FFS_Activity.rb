@@ -105,6 +105,7 @@ module PostRunner
 
     attr_persist :device, :fit_file_name, :norecord, :name, :note, :sport,
       :sub_sport, :timestamp, :total_distance, :total_timer_time, :avg_speed
+	  
     attr_reader :fit_activity
 
     # Create a new FFS_Activity object.
@@ -136,6 +137,7 @@ module PostRunner
       # Get the right target directory for this particular FIT file.
       dir = @store['file_store'].fit_file_dir(File.basename(fit_file_name),
                                               @device.long_uid, 'activity')
+											  
       # Create the necessary directories if they don't exist yet.
       create_directory(dir, 'Device activity diretory')
 
@@ -144,6 +146,27 @@ module PostRunner
         FileUtils.cp(fit_file_name, dir)
       rescue StandardError
         Log.fatal "Cannot copy #{fit_file_name} into #{dir}: #{$!}"
+      end
+    end
+
+    # Copy the given FIT file to a new name in the same directory.
+    # @param fit_file_name [String] File name of the FIT file.
+    def copy_fit_file(new_fit_file_name)
+      # Get the right target directory for this particular FIT file.
+      dir = @store['file_store'].fit_file_dir(File.basename(@fit_file_name),
+                                              @device.long_uid, 'activity')
+											  
+	  orig_fit_file = File.join(dir, @fit_file_name)
+	  new_fit_file  = File.join(dir, new_fit_file_name)
+	  
+      # Create the necessary directories if they don't exist yet.
+      create_directory(dir, 'Device activity diretory')
+
+      # Copy the file into the target directory.
+      begin
+        FileUtils.cp(orig_fit_file, new_fit_file)
+      rescue StandardError
+        Log.fatal "Cannot copy #{@fit_file_name} to #{new_fit_file}: #{$!}"
       end
     end
 
@@ -195,40 +218,60 @@ module PostRunner
       @store['file_store'].show_in_browser(html_file)
     end
 	
-	# split files based at times where stopped duration >= duration
+	# split files based at times where stopped duration >= duration (in hours)
 	def split(duration)
-	   stop_array = stops(duration)
-	   splice_records = []
-	   
+	   stop_array = stops(duration*3600.0)
+	   split_activities = []
 	   start_slice = 0
-	   stop_array.each do |stop|
-		 splice_records << @fit_activity.records.slice(start_slice, stop.index-start_slice+1)
+	   fit_file_base_name = @fit_file_name.delete_suffix(".fit")
+	   hold_records = @fit_activity_records
+
+	   stop_array.each_with_index do |stop, ind|
+		 temp_fit_file_name = "#{fit_file_base_name}_#{ind}.fit"
+		 #binding.pry   #jkk
+		 #copy_fit_file(temp_fit_file_name)
+		 #load_temp_fit_file(temp_fit_file_name)   # creates @temp_fit_activity
+		 #@fit_activity.records.slice!(start_slice, stop.index - start_slice + 1)
+		 test_records = @fit_activity.records[start_slice..stop.index]
+		 @fit_activity.records = test_records
 		 start_slice = stop.index+1
-		 
-		 #binding.pry  #jkk
+		 last_ind = ind+1
+		 #do we need to write the file?
+		 # Get the right target directory for this particular FIT file.
+		 dir = @store['file_store'].fit_file_dir(File.basename(@fit_file_name),
+                                              @device.long_uid, 'activity')
+		 new_fit_file = File.join(dir, temp_fit_file_name)
+		 Fit4Ruby.write(new_fit_file, @fit_activity)
+		 #purge_temp_fit_file
+		 # restore records
+		 @fit_activity.records = hold_records
 	   end
-	   splice_records << @fit_activity.records.slice(start_slice, @fit_activity.records.length-start_slice)
+	   binding.pry  #jkk
+	   # handle the last segment
+	   temp_fit_file_name = "#{fit_file_base_name}_#{last_ind}.fit"
+	   test_records = @fit_activity.records[start_slice..@fit_activity.records.length]
+	   @fit_activity.records = test_records
+	   dir = @store['file_store'].fit_file_dir(File.basename(@fit_file_name),
+                                              @device.long_uid, 'activity')
+	   new_fit_file = File.join(dir, temp_fit_file_name)
+	   Fit4Ruby.write(new_fit_file, @fit_activity)
 	   
 	   binding.pry		#jkk
 	   
-	   splice_records.each do |record|
-		 activity_out = Fit4Ruby::Activity.new
-		 #activity_out.new_user_profile(@fit_activity.user_profiles[0])
-		 #activity_out.new_user_data(@fit_activity.user_data[0])
-		 
+	   # these might need to go into above loop
+	   split_activities.each do |activity|
 		 running_time = 0.0
 		 stopped_time = 0.0
 		 last_speed = record[0].speed
 		 last_time = record[0].timestamp
-		 record.each do |element|
-			activity_out.new_record(element)
+		 activity.records.each do |element|
 			delta_t = element.timestamp - last_time
 			last_speed > 0 ? running_time += delta_t : 
 				stopped_time += delta_t
 			last_speed = element.speed
 			last_time = element.timestamp
 		 end
-		 activity_out.total_timer_time = running_time
+		 activity.total_timer_time = running_time
 		 
 		 binding.pry  #jkk
 		 
@@ -236,7 +279,9 @@ module PostRunner
 		 
 	   end
 		
-	   return splice_records
+	   binding.pry    #jkk
+	   
+	   return split_activities
 	   
 	end
 
@@ -295,7 +340,7 @@ module PostRunner
 		 end
 	   end
 	   
-	   binding.pry	#jkk
+	   #binding.pry	#jkk
 	   
 	   stop_array.select! { |stop_info| stop_info.duration >= duration }
 
@@ -321,9 +366,9 @@ module PostRunner
 
       stop_array.each do |stop_info|
         t.cell(stop_info.index)
-        t.cell(stop_info.start_time.localtime.strftime("%_m/%e %H:%M:%S"))
+        t.cell(stop_info.start_time.localtime.strftime("%_m/%e/%y %H:%M:%S"))
         t.cell(secsToHMS(stop_info.duration))
-        t.cell(stop_info.end_time.localtime.strftime("%_m/%e %H:%M:%S"))
+        t.cell(stop_info.end_time.localtime.strftime("%_m/%e/%y %H:%M:%S"))
         t.new_row
       end
 
@@ -428,6 +473,28 @@ module PostRunner
     def purge_fit_file
       @fit_activity = nil
     end
+
+	def load_temp_fit_file(fit_file_name, filter = nil)
+	  return if @temp_fit_activity
+      dir = @store['file_store'].fit_file_dir(@fit_file_name,
+                                              @device.long_uid, 'activity')
+      fit_file = File.join(dir, fit_file_name)
+      begin
+        @temp_fit_activity = Fit4Ruby.read(fit_file, filter)
+      rescue Fit4Ruby::Error
+        Log.fatal "#{fit_file_name} corrupted: #{$!}"
+      end
+
+      unless @fit_activity
+        Log.fatal "#{fit_file} does not contain any activity records"
+      end
+    end
+	  
+    def purge_temp_fit_file
+      @temp_fit_activity = nil
+    end
+	  
+
 
   end
 
