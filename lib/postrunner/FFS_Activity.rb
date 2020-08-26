@@ -224,8 +224,9 @@ module PostRunner
 	   split_activities = []
 	   start_slice = 0
 	   fit_file_base_name = @fit_file_name.delete_suffix(".fit")
-	   hold_records = @fit_activity_records
-
+	   hold_records = @fit_activity.records
+ 
+       last_ind = 0
 	   stop_array.each_with_index do |stop, ind|
 		 temp_fit_file_name = "#{fit_file_base_name}_#{ind}.fit"
 		 #binding.pry   #jkk
@@ -244,9 +245,10 @@ module PostRunner
 		 Fit4Ruby.write(new_fit_file, @fit_activity)
 		 #purge_temp_fit_file
 		 # restore records
+         #binding.pry    #jkk
 		 @fit_activity.records = hold_records
 	   end
-	   binding.pry  #jkk
+	   # binding.pry  #jkk
 	   # handle the last segment
 	   temp_fit_file_name = "#{fit_file_base_name}_#{last_ind}.fit"
 	   test_records = @fit_activity.records[start_slice..@fit_activity.records.length]
@@ -256,33 +258,31 @@ module PostRunner
 	   new_fit_file = File.join(dir, temp_fit_file_name)
 	   Fit4Ruby.write(new_fit_file, @fit_activity)
 	   
-	   binding.pry		#jkk
+	   # binding.pry		#jkk
 	   
 	   # these might need to go into above loop
-	   split_activities.each do |activity|
-		 running_time = 0.0
-		 stopped_time = 0.0
-		 last_speed = record[0].speed
-		 last_time = record[0].timestamp
-		 activity.records.each do |element|
-			delta_t = element.timestamp - last_time
-			last_speed > 0 ? running_time += delta_t : 
-				stopped_time += delta_t
-			last_speed = element.speed
-			last_time = element.timestamp
-		 end
-		 activity.total_timer_time = running_time
+	   #split_activities.each do |activity|
+	#	 running_time = 0.0
+	#	 stopped_time = 0.0
+	#	 last_speed = record[0].speed
+	#	 last_time = record[0].timestamp
+	#	 activity.records.each do |element|
+	#		delta_t = element.timestamp - last_time
+	#		last_speed > 0 ? running_time += delta_t : 
+	#			stopped_time += delta_t
+	#		last_speed = element.speed
+	#		last_time = element.timestamp
+	#	 end
+	#	 activity.total_timer_time = running_time
 		 
-		 binding.pry  #jkk
+	#	 binding.pry  #jkk
 		 
 		 #write output file
 		 
 	   end
 		
-	   binding.pry    #jkk
-	   
-	   return split_activities
-	   
+	#   binding.pry    #jkk
+	   	   
 	end
 
     def sources
