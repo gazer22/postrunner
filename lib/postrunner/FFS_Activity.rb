@@ -24,7 +24,7 @@ require 'postrunner/DirUtils'
 
 module PostRunner
 
-  class StopList < Struct.new(:index, :start_time, :duration, :end_time, :speed)
+  class StopList < Struct.new(:index, :start_time, :duration, :end_time, :speed, :distance)
   end
 
 
@@ -311,19 +311,24 @@ module PostRunner
          delta_t = last_timestamp - record.timestamp	
          #puts "#{ind}, #{record.speed}, #{delta_t}"
          if record.speed == 0 || record.speed.nil? || delta_t >=60  #jkk guess for now, but seems to work
-			stop_array << StopList.new(last_ind-ind, record.timestamp, delta_t, last_timestamp, record.speed)
+			stop_array << StopList.new( last_ind-ind, record.timestamp, 
+			             delta_t, last_timestamp, record.speed, 
+						 distance_act(record.timestamp).round(1) )
 	     end
 		 last_timestamp = record.timestamp
        end  #record do loop
 	   
 	   stop_array.reverse!
 	   
-	   # need to combine sequential zero speed records 
+	   # need to combine sequential zero speed records and points in close proximity
 	   ind = 1
 	   until ind >= stop_array.length
-	     if (stop_array[ind].index == stop_array[ind-1].index+1) || (stop_array[ind].start_time == stop_array[ind-1].end_time)
-			stop_array[ind-1].duration += stop_array[ind].duration
+	     if (stop_array[ind].index == stop_array[ind-1].index+1) || 
+		       (stop_array[ind].start_time == stop_array[ind-1].end_time)  ||
+			    (stop_array[ind].distance - stop_array[ind-1].distance).abs <= 0.3 
+			#stop_array[ind-1].duration += stop_array[ind].duration
 			stop_array[ind-1].end_time = stop_array[ind].end_time
+			stop_array[ind-1].duration = stop_array[ind-1].end_time - stop_array[ind-1].start_time
 			stop_array.slice!(ind)
 		 else
 			ind += 1
@@ -350,19 +355,19 @@ module PostRunner
         { :halign => :right }
       ])
       t.body
-
-      t.row([ 'Start', @fit_activity.timestamp.strftime("%_m/%e/%y %H:%M:%S"), '-', '-', '0 km' ])
+	  
+      t.row([ 'Start', @fit_activity.records.first.timestamp.localtime.strftime("%_m/%e/%y %H:%M:%S"), '-', '-', '0 km' ])
 
       stop_array.each do |stop_info|
         t.cell(stop_info.index)
         t.cell(stop_info.start_time.localtime.strftime("%_m/%e/%y %H:%M:%S"))
         t.cell(secsToHMS(stop_info.duration))
         t.cell(stop_info.end_time.localtime.strftime("%_m/%e/%y %H:%M:%S"))
-        t.cell(distance(stop_info.start_time,:metric))
+        t.cell('%0.f km' % stop_info.distance)
         t.new_row
       end
-      t.row([ 'Finish', @fit_activity.records.last.timestamp.strftime("%_m/%e/%y %H:%M:%S"), '-', '-',
-        distance(@fit_activity.records.last.timestamp,:metric) ])
+      t.row([ 'Finish', @fit_activity.records.last.timestamp.localtime.strftime("%_m/%e/%y %H:%M:%S"), '-', '-',
+        '%0.f km' % distance_act(@fit_activity.records.last.timestamp) ])
 
       t
     end
@@ -438,11 +443,27 @@ module PostRunner
           unit = { :metric => 'km', :statute => 'mi'}[unit_system]
           value = record.get_as('distance', unit)
           return '-' unless value
-          return "#{'%0.f %s' % [value, unit]}"
+          return "#{'%0.2f %s' % [value, unit]}"
         end
       end
 
       '-'
+    end
+	
+	def distance_act(timestamp)
+      load_fit_file
+
+      unit = 'km'  #{ :metric => 'km', :statute => 'mi'}[unit_system]
+
+      @fit_activity.records.each do |record|
+        if record.timestamp >= timestamp
+          value = record.get_as('distance', unit)
+          return nil unless value
+          return value
+        end
+      end
+
+      return nil
     end
 
     def load_fit_file(filter = nil)
