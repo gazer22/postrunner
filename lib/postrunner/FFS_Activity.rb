@@ -308,8 +308,9 @@ module PostRunner
 	   stop_array = []
 	  
        @fit_activity.records.reverse.each_with_index do |record, ind|
-         delta_t = last_timestamp - record.timestamp		
-         if record.speed == 0 || record.speed.nil?   #jkk guess for now, but seems to work
+         delta_t = last_timestamp - record.timestamp	
+         #puts "#{ind}, #{record.speed}, #{delta_t}"
+         if record.speed == 0 || record.speed.nil? || delta_t >=60  #jkk guess for now, but seems to work
 			stop_array << StopList.new(last_ind-ind, record.timestamp, delta_t, last_timestamp, record.speed)
 	     end
 		 last_timestamp = record.timestamp
@@ -340,22 +341,28 @@ module PostRunner
 	def stops_to_s(stop_array)
 	  t = FlexiTable.new
       t.head
-      t.row([ 'Index', 'Start time', 'Duration', 'End time' ])
+      t.row([ 'Index', 'Start time', 'Duration', 'End time', 'Dist' ])
       t.set_column_attributes([
         { :halign => :right },
         { :halign => :right },
         { :halign => :right },
         { :halign => :right },
+        { :halign => :right }
       ])
       t.body
+
+      t.row([ 'Start', @fit_activity.timestamp.strftime("%_m/%e/%y %H:%M:%S"), '-', '-', '0 km' ])
 
       stop_array.each do |stop_info|
         t.cell(stop_info.index)
         t.cell(stop_info.start_time.localtime.strftime("%_m/%e/%y %H:%M:%S"))
         t.cell(secsToHMS(stop_info.duration))
         t.cell(stop_info.end_time.localtime.strftime("%_m/%e/%y %H:%M:%S"))
+        t.cell(distance(stop_info.start_time,:metric))
         t.new_row
       end
+      t.row([ 'Finish', @fit_activity.records.last.timestamp.strftime("%_m/%e/%y %H:%M:%S"), '-', '-',
+        distance(@fit_activity.records.last.timestamp,:metric) ])
 
       t
     end
@@ -431,7 +438,7 @@ module PostRunner
           unit = { :metric => 'km', :statute => 'mi'}[unit_system]
           value = record.get_as('distance', unit)
           return '-' unless value
-          return "#{'%.2f %s' % [value, unit]}"
+          return "#{'%0.f %s' % [value, unit]}"
         end
       end
 
