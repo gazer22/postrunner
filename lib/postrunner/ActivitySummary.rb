@@ -83,8 +83,6 @@ module PostRunner
     def summary
       session = @fit_activity.sessions[0]
 	  
-	  binding.pry    #jkk
-	  
       t = FlexiTable.new
       t.enable_frame(false)
       t.body
@@ -342,8 +340,11 @@ module PostRunner
     def has_pwr_zones?
       #return true if FIT file has power data and a defined FTP
 
-      #binding.pry     #jkk
       user_data = @fit_activity.get("user_data")
+      
+      if user_data[0].nil? || user_data[0].functional_threshold_power.nil?
+        return false
+      end
       ftp = user_data[0].functional_threshold_power
       session = @fit_activity.sessions[0]
       
