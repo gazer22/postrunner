@@ -52,7 +52,7 @@ module PostRunner
     # @return [FFS_Activity or FFS_Monitoring] Corresponding entry in the
     #         FitFileStore or nil if file could not be added.
     def add_fit_file(fit_file_name, fit_entity, overwrite)
-      if fit_entity.is_a?(Fit4Ruby::Activity)
+      if fit_entity.is_a?(Fit4Ruby::Activity) || fit_entity.is_a?(Fit4Ruby::Course)    #jkk
         entity = activity_by_file_name(File.basename(fit_file_name))
         entities = @activities
         type = 'activity'
@@ -150,7 +150,6 @@ module PostRunner
     # @param to_time [Time] end time of the interval (not included)
     # @return [Array] list of overlapping FFS_Monitoring objects.
     def monitorings(from_time, to_time)
-      #binding.pry    #jkk
       @monitorings.select do |m|
         (from_time <= m.period_start && m.period_start < to_time) ||
           (from_time <= m.period_end && m.period_end < to_time)

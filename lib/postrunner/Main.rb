@@ -512,7 +512,8 @@ EOT
       end
 
       if fit_entity.is_a?(Fit4Ruby::Activity) ||
-         fit_entity.is_a?(Fit4Ruby::Monitoring_B)
+         fit_entity.is_a?(Fit4Ruby::Monitoring_B) ||
+		 fit_entity.is_a?(Fit4Ruby::Course)
         return @ffs.add_fit_file(fit_file_name, fit_entity, @force)
       else
         Log.error "#{fit_file_name} is not a recognized FIT file"

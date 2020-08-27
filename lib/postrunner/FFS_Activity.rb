@@ -229,7 +229,6 @@ module PostRunner
        last_ind = 0
 	   stop_array.each_with_index do |stop, ind|
 		 temp_fit_file_name = "#{fit_file_base_name}_#{ind}.fit"
-		 #binding.pry   #jkk
 		 #copy_fit_file(temp_fit_file_name)
 		 #load_temp_fit_file(temp_fit_file_name)   # creates @temp_fit_activity
 		 #@fit_activity.records.slice!(start_slice, stop.index - start_slice + 1)
@@ -245,10 +244,8 @@ module PostRunner
 		 Fit4Ruby.write(new_fit_file, @fit_activity)
 		 #purge_temp_fit_file
 		 # restore records
-         #binding.pry    #jkk
 		 @fit_activity.records = hold_records
 	   end
-	   # binding.pry  #jkk
 	   # handle the last segment
 	   temp_fit_file_name = "#{fit_file_base_name}_#{last_ind}.fit"
 	   test_records = @fit_activity.records[start_slice..@fit_activity.records.length]
@@ -258,10 +255,9 @@ module PostRunner
 	   new_fit_file = File.join(dir, temp_fit_file_name)
 	   Fit4Ruby.write(new_fit_file, @fit_activity)
 	   
-	   # binding.pry		#jkk
 	   
-	   # these might need to go into above loop
-	   #split_activities.each do |activity|
+	# these might need to go into above loop
+	#split_activities.each do |activity|
 	#	 running_time = 0.0
 	#	 stopped_time = 0.0
 	#	 last_speed = record[0].speed
@@ -277,7 +273,7 @@ module PostRunner
 		 
 	#	 binding.pry  #jkk
 		 
-		 #write output file
+	#write output file
 		 
 	#   end
 		
@@ -309,8 +305,6 @@ module PostRunner
 
        last_ind = @fit_activity.records.length-1
 	   
-	   #binding.pry  #jkk
-	   
 	   last_timestamp = @fit_activity.records[last_ind].timestamp
 	   stop_array = []
 	  
@@ -319,19 +313,15 @@ module PostRunner
          if record.speed == 0 || record.speed.nil?   #jkk guess for now, but seems to work
 			stop_array << StopList.new(last_ind-ind, record.timestamp, delta_t, last_timestamp, record.speed)
 	     end
-         #binding.pry    #jkk
 		 last_timestamp = record.timestamp
        end  #record do loop
-	   #binding.pry   #jkk
 	   
 	   stop_array.reverse!
 	   
 	   # need to combine sequential zero speed records 
 	   ind = 1
 	   until ind >= stop_array.length
-	     #binding.pry    #jkk
 	     if (stop_array[ind].index == stop_array[ind-1].index+1) || (stop_array[ind].start_time == stop_array[ind-1].end_time)
-			#binding.pry   #jkk
 			stop_array[ind-1].duration += stop_array[ind].duration
 			stop_array[ind-1].end_time = stop_array[ind].end_time
 			stop_array.slice!(ind)
@@ -340,11 +330,7 @@ module PostRunner
 		 end
 	   end
 	   
-	   #binding.pry	#jkk
-	   
 	   stop_array.select! { |stop_info| stop_info.duration >= duration }
-
-	   #binding.pry #jkk
 	   
 	   puts stops_to_s(stop_array)
 	   

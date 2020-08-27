@@ -82,7 +82,9 @@ module PostRunner
 
     def summary
       session = @fit_activity.sessions[0]
-
+	  
+	  binding.pry    #jkk
+	  
       t = FlexiTable.new
       t.enable_frame(false)
       t.body

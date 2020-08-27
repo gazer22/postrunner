@@ -357,8 +357,6 @@ module PostRunner
       last_timestamp = nil
       last_distance = nil
 
-	  #binding.pry    #jkk
-	  
       activity.fit_activity.records.each do |record|
         if record.distance.nil?
           # All records must have a valid distance mark or the activity does
@@ -370,8 +368,6 @@ module PostRunner
           Log.warn "Found a record without a valid timestamp"
           return
         end
-
-		#binding.pry	if record.equal?(activity.fit_activity.records.last) #jkk
 
         unless sport
           # If the Activity has sport set to 'multisport' or 'all' we pick up
@@ -417,8 +413,6 @@ module PostRunner
 #           record.equal?(activity.fit_activity.records.last)
         if (record.activity_type && sport && record.activity_type != sport) ||
            record.equal?(activity.fit_activity.records.last)
-
-		  #binding.pry			#jkk    #should only stop here at end of records?
 
           # Check for a total distance record
           if segment_distance > distance_record
