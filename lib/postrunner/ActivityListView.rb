@@ -77,7 +77,7 @@ module PostRunner
       i = @page_no < 0 ? 0 : @page_no * @page_size
       t = FlexiTable.new
       t.head
-      t.row(%w( Ref. Activity Type Start Distance Duration Speed/Pace ),
+      t.row(%w( Ref. Activity Type Timestamp Distance Duration Speed/Pace ),
             { :halign => :left })
       t.set_column_attributes([
         { :halign => :right },
@@ -95,10 +95,10 @@ module PostRunner
           i += 1,
           ActivityLink.new(a, true),
           a.query('type'),
-          a.query('long_date'),
+          a.timestamp.getlocal(a.timezone).strftime('%a, %Y %b %d %H:%M'),
           local_value(a.total_distance, 'm', '%.2f',
                       { :metric => 'km', :statute => 'mi' }),
-          secsToHMS(a.total_timer_time),
+          secsToHMS(a.total_elapsed_time), #secsToHMS(a.total_timer_time),
           a.sport == 'running' ? pace(a.avg_speed) :
             local_value(a.avg_speed, 'm/s', '%.1f',
                         { :metric => 'km/h', :statute => 'mph' }) ])

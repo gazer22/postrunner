@@ -104,8 +104,8 @@ module PostRunner
     }
 
     attr_persist :device, :fit_file_name, :norecord, :name, :note, :sport,
-      :sub_sport, :timestamp, :total_distance, :total_timer_time, :avg_speed,
-      :timezone
+      :sub_sport, :timestamp, :total_distance, :total_timer_time, :total_elapsed_time, 
+	  :avg_speed, :timezone_store
 	  
     attr_reader :fit_activity  # basically a pointer to the activity in a FIT file
                                # tends to work as a read-only version (i.e., changes made
@@ -124,17 +124,19 @@ module PostRunner
       self.fit_file_name = fit_file_name ? File.basename(fit_file_name) : nil
       self.name = fit_file_name ? File.basename(fit_file_name) : nil
       self.norecord = false
+
       if (@fit_activity = fit_entity)
         self.timestamp = fit_entity.timestamp
         self.total_timer_time = fit_entity.total_timer_time
+		self.total_elapsed_time = fit_entity.sessions[0].total_elapsed_time
         self.sport = fit_entity.sport
         self.sub_sport = fit_entity.sub_sport
         self.total_distance = fit_entity.total_distance
         self.avg_speed = fit_entity.avg_speed
         if fit_entity.local_timestamp && fit_entity.timestamp
-            self.timezone = (fit_entity.local_timestamp - fit_entity.timestamp) 
+            self.timezone_store = (fit_entity.local_timestamp - fit_entity.timestamp) 
         else
-            self.timezone = -4 * 3600  #default to eastern (daylight?)
+            self.timezone_store = -4 * 3600  #default to eastern (daylight?)
         end
       end
     end
@@ -308,7 +310,17 @@ module PostRunner
         # 2	     1:45:22   0:10:00
         # 3		 2:20:12   0:00:05
     def stops(duration)
-       load_fit_file unless @fit_activity
+       stop_array = build_stops_table 
+		
+	   stop_array.select! { |stop_info| stop_info.duration >= duration }
+	   
+	   puts stops_to_s(stop_array)
+	   
+	   return stop_array
+    end
+	
+	def build_stops_table
+	   load_fit_file unless @fit_activity
  
        last_ind = @fit_activity.records.length-1
 	   
@@ -342,14 +354,9 @@ module PostRunner
 			ind += 1
 		 end
 	   end
-	   
-	   stop_array.select! { |stop_info| stop_info.duration >= duration }
-	   
-	   puts stops_to_s(stop_array)
-	   
+
 	   return stop_array
-	
-    end
+	end
 
 	def stops_to_s(stop_array)
 	  t = FlexiTable.new
@@ -364,19 +371,17 @@ module PostRunner
       ])
       t.body
 
-      binding.pry    #jkk
-	  
-      t.row([ 'Start', @fit_activity.records.first.timestamp.getlocal(@timezone).strftime("%_m/%e/%y %H:%M:%S"), '-', '-', '0 km' ])
+      t.row([ 'Start', @fit_activity.records.first.timestamp.getlocal(@timezone_store).strftime("%_m/%e/%y %H:%M:%S"), '-', '-', '0 km' ])
 
       stop_array.each do |stop_info|
         t.cell(stop_info.index)
-        t.cell(stop_info.start_time.getlocal(@timezone).strftime("%_m/%e/%y %H:%M:%S"))
+        t.cell(stop_info.start_time.getlocal(@timezone_store).strftime("%_m/%e/%y %H:%M:%S"))
         t.cell(secsToHMS(stop_info.duration))
-        t.cell(stop_info.end_time.getlocal(@timezone).strftime("%_m/%e/%y %H:%M:%S"))
+        t.cell(stop_info.end_time.getlocal(@timezone_store).strftime("%_m/%e/%y %H:%M:%S"))
         t.cell('%0.f km' % stop_info.distance)
         t.new_row
       end
-      t.row([ 'Finish', @fit_activity.records.last.timestamp.getlocal(@timezone).strftime("%_m/%e/%y %H:%M:%S"), '-', '-',
+      t.row([ 'Finish', @fit_activity.records.last.timestamp.getlocal(@timezone_store).strftime("%_m/%e/%y %H:%M:%S"), '-', '-',
         '%0.f km' % distance_act(@fit_activity.records.last.timestamp) ])
 
       t
@@ -421,6 +426,14 @@ module PostRunner
       end
       generate_html_report
     end
+	
+	def set_timezone(offset)
+		self.timezone_store = offset * 3600
+	end
+	
+	def timezone
+		return @timezone_store
+	end
 
     # Return true if this activity generated any personal records.
     def has_records?

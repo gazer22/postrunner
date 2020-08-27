@@ -247,6 +247,9 @@ stops [ <ref>, <duration> ]
 summary <ref>
            Display the summary information for the FIT file.
 
+timezone <ref> <offset>
+		   Change the timezone of an activity by <offset> in hours from UTC
+
 units <metric | statute>
            Change the unit system.
 
@@ -396,6 +399,8 @@ EOT
         process_activities(args, :stops)
       when 'summary'
         process_activities(args, :summary)
+	  when 'timezone'
+	    process_activities(args, :timezone)
       when 'units'
         change_unit_system(args)
       when 'htmldir'
@@ -510,8 +515,6 @@ EOT
         return false
       end
 
-      binding.pry    #jkk
-
       if fit_entity.is_a?(Fit4Ruby::Activity) ||
          fit_entity.is_a?(Fit4Ruby::Monitoring_B) ||
 		 fit_entity.is_a?(Fit4Ruby::Course)
@@ -552,6 +555,8 @@ EOT
         activity.sources
       when :summary
         activity.summary
+	  when :timezone
+	    activity.set_timezone(@duration)
       else
         Log.fatal("Unknown activity command #{command}")
       end

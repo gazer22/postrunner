@@ -82,13 +82,12 @@ module PostRunner
 
     def summary
       session = @fit_activity.sessions[0]
-	  
       t = FlexiTable.new
       t.enable_frame(false)
       t.body
       t.row([ 'Type:', @type ])
       t.row([ 'Sub Type:', @sub_type ])
-      t.row([ 'Start Time:', session.start_time])
+      t.row([ 'Start Time:', session.start_time.getlocal(@activity.timezone)])
       t.row([ 'Distance:',
               local_value(session, 'total_distance', '%.2f %s',
                           { :metric => 'km', :statute => 'mi'}) ])
