@@ -15,6 +15,7 @@ require 'fit4ruby'
 require 'perobs'
 require 'fileutils'
 require 'pry-byebug'
+require 'scanf'
 
 require 'postrunner/version'
 require 'postrunner/Log'
@@ -248,7 +249,9 @@ summary <ref>
            Display the summary information for the FIT file.
 
 timezone <ref> <offset>
-		   Change the timezone of an activity by <offset> in hours from UTC
+		   Change the timezone of an activity by <offset> in hours from UTC.
+		   Use m to indicate a negative number:
+		      postrunner timezone :2 m3
 
 units <metric | statute>
            Change the unit system.
@@ -437,16 +440,28 @@ EOT
       if activity_refs.empty?
         Log.abort("You must provide at least one activity reference.")
       end
-
-      @duration = 30       # used to detect stops
+	 
+      @duration = 30.0       # used to detect stops
       act_count = 0
       activity_refs.each do |arg|
         if arg[0] == ':'
             act_count += 1
         else
-            @duration = arg.to_f
-        end
-      end
+		    case command
+			  when :split, :stops
+		        @duration = arg.to_f
+			  when :timezone
+			    if arg[0] == 'm' 
+				  input = arg.scanf("%c%f")
+				  @duration = -1.0 * input[1]
+				else 
+				  @duration = arg.to_f
+			    end 
+			  else
+			    Log.fatal("Unknown file command #{arg}")
+			end  #case
+        end   #if
+      end  #do
 
      
       activity_refs[0..act_count-1].each do |a_ref|
