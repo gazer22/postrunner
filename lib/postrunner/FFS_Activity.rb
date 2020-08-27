@@ -104,9 +104,12 @@ module PostRunner
     }
 
     attr_persist :device, :fit_file_name, :norecord, :name, :note, :sport,
-      :sub_sport, :timestamp, :total_distance, :total_timer_time, :avg_speed
+      :sub_sport, :timestamp, :total_distance, :total_timer_time, :avg_speed,
+      :timezone
 	  
-    attr_reader :fit_activity
+    attr_reader :fit_activity  # basically a pointer to the activity in a FIT file
+                               # tends to work as a read-only version (i.e., changes made
+                               # here are not saved to the physical file)
 
     # Create a new FFS_Activity object.
     # @param p [PEROBS::Handle] PEROBS handle
@@ -128,6 +131,11 @@ module PostRunner
         self.sub_sport = fit_entity.sub_sport
         self.total_distance = fit_entity.total_distance
         self.avg_speed = fit_entity.avg_speed
+        if fit_entity.local_timestamp && fit_entity.timestamp
+            self.timezone = (fit_entity.local_timestamp - fit_entity.timestamp) 
+        else
+            self.timezone = -4 * 3600  #default to eastern (daylight?)
+        end
       end
     end
 
@@ -355,18 +363,20 @@ module PostRunner
         { :halign => :right }
       ])
       t.body
+
+      binding.pry    #jkk
 	  
-      t.row([ 'Start', @fit_activity.records.first.timestamp.localtime.strftime("%_m/%e/%y %H:%M:%S"), '-', '-', '0 km' ])
+      t.row([ 'Start', @fit_activity.records.first.timestamp.getlocal(@timezone).strftime("%_m/%e/%y %H:%M:%S"), '-', '-', '0 km' ])
 
       stop_array.each do |stop_info|
         t.cell(stop_info.index)
-        t.cell(stop_info.start_time.localtime.strftime("%_m/%e/%y %H:%M:%S"))
+        t.cell(stop_info.start_time.getlocal(@timezone).strftime("%_m/%e/%y %H:%M:%S"))
         t.cell(secsToHMS(stop_info.duration))
-        t.cell(stop_info.end_time.localtime.strftime("%_m/%e/%y %H:%M:%S"))
+        t.cell(stop_info.end_time.getlocal(@timezone).strftime("%_m/%e/%y %H:%M:%S"))
         t.cell('%0.f km' % stop_info.distance)
         t.new_row
       end
-      t.row([ 'Finish', @fit_activity.records.last.timestamp.localtime.strftime("%_m/%e/%y %H:%M:%S"), '-', '-',
+      t.row([ 'Finish', @fit_activity.records.last.timestamp.getlocal(@timezone).strftime("%_m/%e/%y %H:%M:%S"), '-', '-',
         '%0.f km' % distance_act(@fit_activity.records.last.timestamp) ])
 
       t

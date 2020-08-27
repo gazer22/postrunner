@@ -510,6 +510,8 @@ EOT
         return false
       end
 
+      binding.pry    #jkk
+
       if fit_entity.is_a?(Fit4Ruby::Activity) ||
          fit_entity.is_a?(Fit4Ruby::Monitoring_B) ||
 		 fit_entity.is_a?(Fit4Ruby::Course)
