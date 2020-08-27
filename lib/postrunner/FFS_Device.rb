@@ -51,9 +51,10 @@ module PostRunner
     #        be replaced with the new one.
     # @return [FFS_Activity or FFS_Monitoring] Corresponding entry in the
     #         FitFileStore or nil if file could not be added.
-    def add_fit_file(fit_file_name, fit_entity, overwrite)
+    def add_fit_file(fit_file_name, fit_entity, overwrite, name)
       if fit_entity.is_a?(Fit4Ruby::Activity) || fit_entity.is_a?(Fit4Ruby::Course)    #jkk
         entity = activity_by_file_name(File.basename(fit_file_name))
+        #entity.set('name', name) if !name.nil?
         entities = @activities
         type = 'activity'
         new_entity_class = FFS_Activity
@@ -96,6 +97,7 @@ module PostRunner
         # Add the new file to the list.
         entity = @store.new(new_entity_class, myself, fit_file_name, fit_entity)
       end
+      entity.name = name
       entity.store_fit_file(fit_file_name)
       entities << entity
       entities.sort!

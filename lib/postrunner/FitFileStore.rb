@@ -129,7 +129,7 @@ module PostRunner
     #        be replaced.
     # @return [FFS_Activity or FFS_Monitoring] Corresponding entry in the
     #         FitFileStore or nil if file could not be added.
-    def add_fit_file(fit_file_name, fit_entity = nil, overwrite = false)
+    def add_fit_file(fit_file_name, fit_entity = nil, overwrite = false, name = nil)
       # If the file hasn't been read yet, read it in as a
       # Fit4Ruby::Activity or Fit4Ruby::Monitoring entity.
       unless fit_entity
@@ -152,13 +152,13 @@ module PostRunner
       # Make sure the device that created the FIT file is properly registered.
       device = register_device(long_uid)
       # Store the FIT entity with the device.
-      entity = device.add_fit_file(fit_file_name, fit_entity, overwrite)
+      entity = device.add_fit_file(fit_file_name, fit_entity, overwrite, name)
 
       # The FIT file might be already stored or invalid. In that case we
       # abort this method.
       return nil unless entity
 
-      if fit_entity.is_a?(Fit4Ruby::Activity)
+      if fit_entity.is_a?(Fit4Ruby::Activity) || fit_entity.is_a?(Fit4Ruby::Course)
         @store['records'].scan_activity_for_records(entity)
 
         # Generate HTML file for this activity.
@@ -290,9 +290,7 @@ module PostRunner
         #binding.pry   #jkk
         monitorings += device.monitorings(start_date.gmtime, end_date.gmtime)
       end
-      
-      #binding.pry    #jkk
-      
+            
       monitorings.reverse.map do |m|
         read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
                                              'monitor'), m.fit_file_name))

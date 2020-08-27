@@ -301,8 +301,7 @@ module PostRunner
         # 3		 2:20:12   0:00:05
     def stops(duration)
        load_fit_file unless @fit_activity
-       #puts "testing stops"
-
+ 
        last_ind = @fit_activity.records.length-1
 	   
 	   last_timestamp = @fit_activity.records[last_ind].timestamp

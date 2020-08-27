@@ -140,17 +140,17 @@ EOT
           @filter = Fit4Ruby::FitFilter.new unless @filter
           @filter.ignore_undef = true
         end
-        opts.on('--force',
-                'Import files even if they have been deleted from the ' +
-                'database before.') do
-          @force = true
-        end
 
         opts.separator ""
         opts.separator "Options for the 'import' command:"
         opts.on('--name name', String,
                 'Name the activity to the specified name') do |n|
           @name = n
+        end
+        opts.on('--force',
+                'Import files even if they have been deleted from the ' +
+                'database before.') do
+          @force = true
         end
 
         opts.separator ""
@@ -320,7 +320,6 @@ EOT
 
       case (cmd = args.shift)
       when 'check'
-        #binding.pry #jkk
         if args.empty?
           @db.check(true)
           @ffs.check
@@ -514,7 +513,7 @@ EOT
       if fit_entity.is_a?(Fit4Ruby::Activity) ||
          fit_entity.is_a?(Fit4Ruby::Monitoring_B) ||
 		 fit_entity.is_a?(Fit4Ruby::Course)
-        return @ffs.add_fit_file(fit_file_name, fit_entity, @force)
+        return @ffs.add_fit_file(fit_file_name, fit_entity, @force, @name)
       else
         Log.error "#{fit_file_name} is not a recognized FIT file"
         return false
@@ -546,8 +545,6 @@ EOT
 	  when :split
 		activity.split(@duration)
       when :stops
-        # binding.pry    #jkk
-        # need to add stops(duration) method to activity
         activity.stops(@duration)
       when :sources
         activity.sources
