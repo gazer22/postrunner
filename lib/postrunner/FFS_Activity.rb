@@ -307,7 +307,6 @@ module PostRunner
                      leg_dur = stop_array[ind].start_time - @fit_activity.records.first.timestamp  #seconds
            stop_array[ind].leg_speed = ( leg_dist / leg_dur.to_f ) * conversion_factor('m/s', 'mph')
 		   leg_start_dist = distance_act(stop_array[ind].end_time)*1000.0
-		   binding.pry   #jkk
        end
 	   
 	   return stop_array
