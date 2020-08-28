@@ -24,7 +24,7 @@ require 'postrunner/DirUtils'
 
 module PostRunner
 
-  class StopList < Struct.new(:index, :start_time, :duration, :end_time, :speed, :distance)
+  class Stop < Struct.new(:index, :start_time, :duration, :end_time, :speed, :distance, :leg_speed)
   end
 
 
@@ -267,31 +267,7 @@ module PostRunner
                                               @device.long_uid, 'activity')
 	   new_fit_file = File.join(dir, temp_fit_file_name)
 	   Fit4Ruby.write(new_fit_file, @fit_activity)
-	   
-	   
-	# these might need to go into above loop
-	#split_activities.each do |activity|
-	#	 running_time = 0.0
-	#	 stopped_time = 0.0
-	#	 last_speed = record[0].speed
-	#	 last_time = record[0].timestamp
-	#	 activity.records.each do |element|
-	#		delta_t = element.timestamp - last_time
-	#		last_speed > 0 ? running_time += delta_t : 
-	#			stopped_time += delta_t
-	#		last_speed = element.speed
-	#		last_time = element.timestamp
-	#	 end
-	#	 activity.total_timer_time = running_time
-		 
-	#	 binding.pry  #jkk
-		 
-	#write output file
-		 
-	#   end
-		
-	#   binding.pry    #jkk
-	   	   
+	      	   
 	end
 
     def sources
@@ -316,11 +292,23 @@ module PostRunner
        stop_array = build_stops_table 
 		
 	   stop_array.select! { |stop_info| stop_info.duration >= duration }
+       stop_array = update_leg_speed(stop_array)
 	   
 	   puts stops_to_s(stop_array)
 	   
 	   return stop_array
     end
+
+    def update_leg_speed(stop_array)
+       leg_start_dist = 0.0
+       for ind in 0...stop_array.length do
+           leg_dist = distance_act(stop_array[ind].start_time)*1000 - leg_start_dist  #meters
+           ind > 0 ? leg_dur = stop_array[ind].start_time - stop_array[ind-1].end_time :
+                     stop_array[ind].start_time   #seconds
+           stop_array[ind].leg_speed = (leg_dist / leg_dur) * conversion_factor('m/s', 'mph')
+       end
+    end
+       
 	
 	def build_stops_table
 	   load_fit_file unless @fit_activity
@@ -334,7 +322,7 @@ module PostRunner
          delta_t = last_timestamp - record.timestamp	
          #puts "#{ind}, #{record.speed}, #{delta_t}"
          if record.speed == 0 || record.speed.nil? || delta_t >=60  #jkk guess for now, but seems to work
-			stop_array << StopList.new( last_ind-ind, record.timestamp, 
+			stop_array << Stop.new( last_ind-ind, record.timestamp, 
 			             delta_t, last_timestamp, record.speed, 
 						 distance_act(record.timestamp).round(1) )
 	     end
@@ -364,8 +352,9 @@ module PostRunner
 	def stops_to_s(stop_array)
 	  t = FlexiTable.new
       t.head
-      t.row([ 'Index', 'Start time', 'Duration', 'End time', 'Dist' ])
+      t.row([ 'Index', 'Start time', 'Duration', 'End time', 'Dist', 'Leg Speed' ])
       t.set_column_attributes([
+        { :halign => :right },
         { :halign => :right },
         { :halign => :right },
         { :halign => :right },
@@ -382,10 +371,19 @@ module PostRunner
         t.cell(secsToHMS(stop_info.duration))
         t.cell(stop_info.end_time.getlocal(@timezone_store).strftime("%_m/%e/%y %H:%M:%S"))
         t.cell('%0.f km' % stop_info.distance)
+        t.cell('%0.1f mph' % stop_info.leg_speed)
         t.new_row
       end
-      t.row([ 'Finish', @fit_activity.records.last.timestamp.getlocal(@timezone_store).strftime("%_m/%e/%y %H:%M:%S"), '-', '-',
-        '%0.f km' % distance_act(@fit_activity.records.last.timestamp) ])
+      last_leg_length = ( distance_act(@fit_activity.records.last.timestamp) - 
+                          distance_act(stop_array.last.end_time) ) * 1000   #meters
+      last_leg_dur = @fit_activity.records.last.timestamp - stop_array.last.end_time  #seconds
+      last_leg_spd = ( last_leg_length / last_leg_dur ) * conversion_factor('m/s', 'mph')
+      t.row([ 'Finish', 
+              @fit_activity.records.last.timestamp.getlocal(@timezone_store).strftime("%_m/%e/%y %H:%M:%S"), 
+              '-', 
+              '-',
+              '%0.f km' % distance_act(@fit_activity.records.last.timestamp),
+              '%0.1f mph' % last_leg_spd  ])
 
       t
     end
