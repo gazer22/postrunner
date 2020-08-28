@@ -188,7 +188,10 @@ module PostRunner
     end
 
     def check
-      generate_html_report
+      # total_elapsed_time updated in Fit4Ruby::Session(check)
+	  load_fit_file
+	  self.total_elapsed_time = @fit_activity.sessions[0].total_elapsed_time
+	  generate_html_report
       Log.info "FIT file #{@fit_file_name} is OK"
     end
 

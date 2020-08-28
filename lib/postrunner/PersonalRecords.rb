@@ -110,7 +110,7 @@ module PostRunner
 		t.row((@duration.nil? ?
                [ 'Longest Distance', '%0.f km' % (@distance / 1000.0), '-', '-' ] :
                [ PersonalRecords::SpeedRecordDistances[@sport][@distance],
-                 secsToHMS(@duration),
+                 secsToHM(@duration),   #jkk - changed from secsToHMS(@duration),
                  '%0.1f kph' % [avg_speed * conversion_factor('m/s', 'km/h')] , 
 				 '%0.1f mph' % [avg_speed * conversion_factor('m/s', 'mph')] ]) +   #jkk - changed from speedToPace to just speed
               [ @store['file_store'].ref_by_activity(@activity),
