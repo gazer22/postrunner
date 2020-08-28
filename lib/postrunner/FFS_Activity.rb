@@ -302,11 +302,15 @@ module PostRunner
     def update_leg_speed(stop_array)
        leg_start_dist = 0.0
        for ind in 0...stop_array.length do
-           leg_dist = distance_act(stop_array[ind].start_time)*1000 - leg_start_dist  #meters
+           leg_dist = distance_act(stop_array[ind].start_time)*1000.0 - leg_start_dist  #meters
            ind > 0 ? leg_dur = stop_array[ind].start_time - stop_array[ind-1].end_time :
-                     stop_array[ind].start_time   #seconds
-           stop_array[ind].leg_speed = (leg_dist / leg_dur) * conversion_factor('m/s', 'mph')
+                     leg_dur = stop_array[ind].start_time - @fit_activity.records.first.timestamp  #seconds
+           stop_array[ind].leg_speed = ( leg_dist / leg_dur.to_f ) * conversion_factor('m/s', 'mph')
+		   leg_start_dist = distance_act(stop_array[ind].end_time)*1000.0
+		   binding.pry   #jkk
        end
+	   
+	   return stop_array
     end
        
 	
@@ -363,7 +367,7 @@ module PostRunner
       ])
       t.body
 
-      t.row([ 'Start', @fit_activity.records.first.timestamp.getlocal(@timezone_store).strftime("%_m/%e/%y %H:%M:%S"), '-', '-', '0 km' ])
+      t.row([ 'Start', @fit_activity.records.first.timestamp.getlocal(@timezone_store).strftime("%_m/%e/%y %H:%M:%S"), '-', '-', '0 km', '-' ])
 
       stop_array.each do |stop_info|
         t.cell(stop_info.index)
