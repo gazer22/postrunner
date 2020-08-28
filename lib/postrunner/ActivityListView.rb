@@ -96,9 +96,9 @@ module PostRunner
           ActivityLink.new(a, true),
           a.query('type'),
           a.timestamp.getlocal(a.timezone).strftime('%a, %Y %b %d %H:%M'),
-          local_value(a.total_distance, 'm', '%.2f',
+          local_value(a.total_distance, 'm', '%.f',
                       { :metric => 'km', :statute => 'mi' }),
-          secsToHMS(a.total_elapsed_time), #secsToHMS(a.total_timer_time),
+          secsToHM(a.total_elapsed_time), #secsToHMS(a.total_timer_time),
           a.sport == 'running' ? pace(a.avg_speed) :
             local_value(a.avg_speed, 'm/s', '%.1f',
                         { :metric => 'km/h', :statute => 'mph' }) ])
